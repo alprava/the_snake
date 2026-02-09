@@ -33,7 +33,7 @@ SPEED = 20
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 
 # Заголовок окна игрового поля:
-pygame.display.set_caption("Змейка")
+pygame.display.set_caption('Змейка')
 
 # Настройка времени:
 clock = pygame.time.Clock()
@@ -47,6 +47,7 @@ class GameObject:
         self.body_color = body_color
 
     def draw(self):
+        """Отрисовка игрового объекта."""
         pass
 
 
@@ -88,9 +89,7 @@ class Snake(GameObject):
         self.last = None
 
     def update_direction(self):
-        """Обновление текущего направления движения.
-        То есть если было запланировано изменение направления,
-        то оно применяется к текущему"""
+        """Обновление текущего направления движения."""
         if self.next_direction:
             self.direction = self.next_direction
             self.next_direction = None
@@ -147,10 +146,13 @@ def handle_keys(snake):
 
 
 def main():
-    """Основная функция для игры.
+    """
+    Основная функция для игры.
+
     Инициализирует игру, создает объекты и запускает игровой цикл.
     Обрабатывает логику движения, столкновений,
-     отрисовки и обновления экрана."""
+     отрисовки и обновления экрана.
+    """
     pygame.init()
     snake = Snake()
     apple = Apple()
