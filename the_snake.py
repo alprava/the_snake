@@ -201,6 +201,7 @@ def main():
     Инициализирует игру, создает объекты и запускает игровой цикл.
     Обрабатывает логику движения, столкновений,
     отрисовки и обновления экрана.
+    Завершение игры после макс.кол-ва итераций.
     """
     pygame.init()
     snake = Snake()
@@ -215,7 +216,6 @@ def main():
     while True:
         iteration_count += 1
         if iteration_count > max_count_of_iterations:
-            print(f'Тест завершен. Итераций: {max_count_of_iterations}')
             pygame.quit()
             return
 
