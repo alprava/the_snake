@@ -209,7 +209,16 @@ def main():
 
     current_speed = INITIAL_SPEED
 
+    iteration_count = 0
+    max_count_of_iterations = 1000
+
     while True:
+        iteration_count += 1
+        if iteration_count > max_count_of_iterations:
+            print(f'Тест завершен. Итераций: {max_count_of_iterations}')
+            pygame.quit()
+            return
+
         clock.tick(current_speed)
         update_window_title(snake, current_speed)
         action = handle_keys(snake)
