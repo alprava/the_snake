@@ -36,7 +36,7 @@ pygame.display.set_caption('Змейка | Управление: стрелки 
 clock = pygame.time.Clock()
 
 # Текущая скорость игры:
-INITIAL_SPEED = 5
+INITIAL_SPEED = 20
 
 
 class GameObject:
@@ -144,6 +144,7 @@ class Snake(GameObject):
         self.positions = [self.position]
         self.direction = choice([UP, DOWN, RIGHT, LEFT])
         self.next_direction = None
+        self.tail_to_remove = None
         self.max_length = max(self.max_length, self.length)
 
 
@@ -240,6 +241,7 @@ def main():
         if snake.get_head_position() in snake.positions[1:]:
             snake.reset()
             apple.randomize_position(snake.positions)
+            current_speed = INITIAL_SPEED
 
         screen.fill(BOARD_BACKGROUND_COLOR)
         snake.draw()
