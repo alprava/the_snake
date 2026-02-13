@@ -49,6 +49,14 @@ OPPOSITE_DIRECTIONS = {
     RIGHT: LEFT
 }
 
+# Клавиши - направление движения
+MOVEMENT_KEYS = {
+    pg.K_UP: UP,
+    pg.K_DOWN: DOWN,
+    pg.K_LEFT: LEFT,
+    pg.K_RIGHT: RIGHT,
+}
+
 
 class GameObject:
     """Общий класс для всех игровых объектов"""
@@ -67,7 +75,7 @@ class GameObject:
     def draw(self):
         """Отрисовка игрового объекта."""
         raise NotImplementedError(
-            f'Метод draw не реализован в классе {self.__class__.__name__}'
+            f'Метод draw не реализован в классе {type(self).__name__}'
         )
 
 
@@ -76,18 +84,16 @@ class Apple(GameObject):
 
     def __init__(self, occupied_positions=None, color=APPLE_COLOR):
         super().__init__(color)
-        if occupied_positions is None:
-            occupied_positions = []
-        self.randomize_position(occupied_positions)
+        self.randomize_position(occupied_positions or [])
 
-    def randomize_position(self, snake_positions):
+    def randomize_position(self, occupied_positions):
         """Установка случайной позиции для яблока"""
         while True:
             self.position = (
                 randint(0, GRID_WIDTH - 1) * GRID_SIZE,
                 randint(0, GRID_HEIGHT - 1) * GRID_SIZE,
             )
-            if self.position not in snake_positions:
+            if self.position not in occupied_positions:
                 break
 
     def draw(self):
@@ -107,14 +113,13 @@ class Snake(GameObject):
         """Обновление текущего направления движения.
         Запрещает разворот на 180 градусов.
         """
-        if new_direction and new_direction != OPPOSITE_DIRECTIONS.get(
+        if new_direction != OPPOSITE_DIRECTIONS.get(
                 self.direction):
             self.direction = new_direction
 
     def move(self):
         """Обновление позиции змейки"""
         head_x, head_y = self.get_head_position()
-
         dx, dy = self.direction
 
         self.positions.insert(0, (
@@ -123,29 +128,19 @@ class Snake(GameObject):
         ))
 
         if len(self.positions) > self.length:
-            self.positions.pop()
+            self.tail_to_remove = self.positions.pop()
+        else:
+            self.tail_to_remove = None
 
-        if self.length > self.max_length:
-            self.max_length = self.length
+        self.max_length = max(self.max_length, self.length)
 
     def draw(self):
         """Отрисовывывает змейку"""
-        if not self.positions:
-            return
-
-        if len(self.positions) == self.length:
-            for position in self.positions:
-                self.draw_cell(position)
-            return
-
         if self.tail_to_remove:
-            rect = pg.Rect(self.tail_to_remove, (GRID_SIZE, GRID_SIZE))
-            pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, rect)
+            self.draw_cell(self.tail_to_remove, color=BOARD_BACKGROUND_COLOR)
 
-        self.draw_cell(self.positions[0])
-
-        if len(self.positions) > 1:
-            self.draw_cell(self.positions[-1])
+        for position in self.positions:
+            self.draw_cell(position)
 
     def get_head_position(self):
         """Возвращает позицию головы змейки"""
@@ -154,41 +149,37 @@ class Snake(GameObject):
     def reset(self):
         """Сброс змейки в начальное состояние"""
         self.length = 1
-        self.positions = [(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)]
+        self.positions = [CENTER_POSITION]
         self.direction = choice([UP, DOWN, RIGHT, LEFT])
         self.tail_to_remove = None
 
 
-def handle_keys(snake):
+def handle_speed_keys(event, current_speed):
+    """Обработка клавиш изменения скорости."""
+    if event.key == pg.K_PLUS or event.key == pg.K_EQUALS:
+        return min(current_speed + 2, 40)
+    elif event.key == pg.K_MINUS:
+        return max(current_speed - 2, 5)
+    elif event.key == pg.K_0:
+        return INITIAL_SPEED
+    return current_speed
+
+
+def handle_keys(snake, current_speed):
     """Обработка пользовательского ввода для управленя змейкой"""
     for event in pg.event.get():
-        if event.type == pg.QUIT:
+        if event.type == pg.QUIT or (
+                event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
             pg.quit()
             raise SystemExit
 
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_ESCAPE:
-                pg.quit()
-                raise SystemExit
+            if event.key in MOVEMENT_KEYS:
+                snake.update_direction(MOVEMENT_KEYS[event.key])
+                return current_speed
 
-            movement_keys = {
-                pg.K_UP: UP,
-                pg.K_DOWN: DOWN,
-                pg.K_LEFT: LEFT,
-                pg.K_RIGHT: RIGHT,
-            }
-
-            if event.key in movement_keys:
-                snake.update_direction(movement_keys[event.key])
-                return None
-
-            if event.key == pg.K_PLUS or event.key == pg.K_EQUALS:
-                return 'speed_up'
-            if event.key == pg.K_MINUS:
-                return 'speed_down'
-            if event.key == pg.K_0:
-                return 'speed_reset'
-    return None
+            return handle_speed_keys(event, current_speed)
+    return current_speed
 
 
 def update_window_title(snake, speed):
@@ -216,47 +207,29 @@ def main():
     pg.init()
     snake = Snake()
     apple = Apple(occupied_positions=snake.positions)
-
     current_speed = INITIAL_SPEED
-
-    iteration_count = 0
-    max_count_of_iterations = 1000
+    screen.fill(BOARD_BACKGROUND_COLOR)
 
     while True:
-        iteration_count += 1
-        if iteration_count > max_count_of_iterations:
-            pg.quit()
-            return
-
         clock.tick(current_speed)
         update_window_title(snake, current_speed)
-        action = handle_keys(snake)
-
-        if action == 'speed_up':
-            current_speed = min(current_speed + 2, 40)
-        elif action == 'speed_down':
-            current_speed = max(current_speed - 2, 5)
-        elif action == 'speed_reset':
-            current_speed = INITIAL_SPEED
+        current_speed = handle_keys(snake, current_speed)
 
         snake.move()
-
-        ate_apple = False
 
         if snake.get_head_position() == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
-            ate_apple = True
 
-        if not ate_apple and snake.get_head_position() in snake.positions[1:]:
+        elif snake.get_head_position() in snake.positions[1:]:
             snake.reset()
             apple.randomize_position(snake.positions)
             current_speed = INITIAL_SPEED
+            screen.fill(BOARD_BACKGROUND_COLOR)
 
         snake.draw()
         apple.draw()
         pg.display.update()
-        screen.fill(BOARD_BACKGROUND_COLOR)
 
 
 if __name__ == '__main__':
