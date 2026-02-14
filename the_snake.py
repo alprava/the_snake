@@ -49,13 +49,22 @@ OPPOSITE_DIRECTIONS = {
     RIGHT: LEFT
 }
 
-# Клавиши - направление движения
+# Клавиши - направление движения для правшей и для левшей
 MOVEMENT_KEYS = {
     pg.K_UP: UP,
     pg.K_DOWN: DOWN,
     pg.K_LEFT: LEFT,
     pg.K_RIGHT: RIGHT,
+    pg.K_w: UP,
+    pg.K_s: DOWN,
+    pg.K_a: LEFT,
+    pg.K_d: RIGHT
 }
+
+# Настройки скорости
+MAX_SPEED = 40
+MIN_SPEED = 5
+SPEED_STEP = 2
 
 
 class GameObject:
@@ -82,9 +91,9 @@ class GameObject:
 class Apple(GameObject):
     """Класс для яблока"""
 
-    def __init__(self, occupied_positions=None, color=APPLE_COLOR):
+    def __init__(self, occupied_positions=(), color=APPLE_COLOR):
         super().__init__(color)
-        self.randomize_position(occupied_positions or [])
+        self.randomize_position(occupied_positions)
 
     def randomize_position(self, occupied_positions):
         """Установка случайной позиции для яблока"""
@@ -106,7 +115,6 @@ class Snake(GameObject):
 
     def __init__(self, color=SNAKE_COLOR):
         super().__init__(color)
-        self.max_length = 1
         self.reset()
 
     def update_direction(self, new_direction):
@@ -127,20 +135,16 @@ class Snake(GameObject):
             (head_y + dy * GRID_SIZE) % SCREEN_HEIGHT
         ))
 
-        if len(self.positions) > self.length:
-            self.tail_to_remove = self.positions.pop()
-        else:
-            self.tail_to_remove = None
-
-        self.max_length = max(self.max_length, self.length)
+        self.tail_to_remove = self.positions.pop() if len(
+            self.positions) > self.length else None
 
     def draw(self):
         """Отрисовывывает змейку"""
         if self.tail_to_remove:
             self.draw_cell(self.tail_to_remove, color=BOARD_BACKGROUND_COLOR)
 
-        for position in self.positions:
-            self.draw_cell(position)
+        if self.positions:
+            self.draw_cell(self.positions[0])
 
     def get_head_position(self):
         """Возвращает позицию головы змейки"""
@@ -157,9 +161,9 @@ class Snake(GameObject):
 def handle_speed_keys(event, current_speed):
     """Обработка клавиш изменения скорости."""
     if event.key == pg.K_PLUS or event.key == pg.K_EQUALS:
-        return min(current_speed + 2, 40)
+        return min(current_speed + SPEED_STEP, MAX_SPEED)
     elif event.key == pg.K_MINUS:
-        return max(current_speed - 2, 5)
+        return max(current_speed - SPEED_STEP, MIN_SPEED)
     elif event.key == pg.K_0:
         return INITIAL_SPEED
     return current_speed
@@ -182,10 +186,10 @@ def handle_keys(snake, current_speed):
     return current_speed
 
 
-def update_window_title(snake, speed):
+def update_window_title(snake, speed, max_length):
     """Обновление заголовка с информацией об игре"""
     title = [f'Длина: {snake.length}',
-             f'Рекорд: {snake.max_length}',
+             f'Рекорд: {max_length}',
              f'Скорость: {speed}',
              'Упр: ←↑↓→',
              'Скор: +/-',
@@ -209,10 +213,11 @@ def main():
     apple = Apple(occupied_positions=snake.positions)
     current_speed = INITIAL_SPEED
     screen.fill(BOARD_BACKGROUND_COLOR)
+    max_length = 1
 
     while True:
         clock.tick(current_speed)
-        update_window_title(snake, current_speed)
+        update_window_title(snake, current_speed, max_length)
         current_speed = handle_keys(snake, current_speed)
 
         snake.move()
@@ -220,8 +225,9 @@ def main():
         if snake.get_head_position() == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
+            snake.max_length = max(max_length, snake.length)
 
-        elif snake.get_head_position() in snake.positions[1:]:
+        elif snake.get_head_position() in snake.positions[2:]:
             snake.reset()
             apple.randomize_position(snake.positions)
             current_speed = INITIAL_SPEED
@@ -229,6 +235,11 @@ def main():
 
         snake.draw()
         apple.draw()
+        if len(snake.positions) > 1:
+            for position in snake.positions[1:]:
+                rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+                pg.draw.rect(screen, SNAKE_COLOR, rect)
+                pg.draw.rect(screen, BORDER_COLOR, rect, 1)
         pg.display.update()
 
 
