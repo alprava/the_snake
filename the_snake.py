@@ -129,7 +129,6 @@ class Snake(GameObject):
         """Обновление позиции змейки"""
         head_x, head_y = self.get_head_position()
         dx, dy = self.direction
-
         self.positions.insert(0, (
             (head_x + dx * GRID_SIZE) % SCREEN_WIDTH,
             (head_y + dy * GRID_SIZE) % SCREEN_HEIGHT
@@ -142,9 +141,7 @@ class Snake(GameObject):
         """Отрисовывывает змейку"""
         if self.tail_to_remove:
             self.draw_cell(self.tail_to_remove, color=BOARD_BACKGROUND_COLOR)
-
-        if self.positions:
-            self.draw_cell(self.positions[0])
+        self.draw_cell(self.get_head_position())
 
     def get_head_position(self):
         """Возвращает позицию головы змейки"""
@@ -235,11 +232,6 @@ def main():
 
         snake.draw()
         apple.draw()
-        if len(snake.positions) > 1:
-            for position in snake.positions[1:]:
-                rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
-                pg.draw.rect(screen, SNAKE_COLOR, rect)
-                pg.draw.rect(screen, BORDER_COLOR, rect, 1)
         pg.display.update()
 
 
